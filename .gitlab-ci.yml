@@ -1,0 +1,44 @@
+stages:
+  - test
+  - build
+  - deploy
+
+# Test stages
+
+test:
+  stage: test
+  script:
+    - echo 'testing'
+
+#  Build stages
+
+.build: &build
+  image: docker
+  stage: build
+  services:
+    - docker:dind
+  script:
+    - docker login -p $CI_JOB_TOKEN -u $CI_REGISTRY_USER $CI_REGISTRY
+    - docker build -t $ARTIFACT .
+    - docker push $ARTIFACT
+
+build-dev:
+  <<: *build
+  variables:
+    ARTIFACT: $CI_REGISTRY/$GITLAB_USER_LOGIN/$CI_PROJECT_NAME:$CI_COMMIT_REF_NAME
+  only:
+    - development
+
+build:
+  <<: *build
+  variables:
+    ARTIFACT: $CI_REGISTRY/$GITLAB_USER_LOGIN/$CI_PROJECT_NAME:latest
+  only:
+    - main
+
+# Deploy stage
+
+deploy:
+  stage: deploy
+  script:
+    - echo 'deploying'
